@@ -11,7 +11,7 @@ const IconReset = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
 
 // --- FUNGSI SCORING LOGIC ATLETIK ---
 const getScoreAtletik = (test, gender, value) => {
-  if (value === '' || value === null || isNaN(value)) return '';
+  if (value === '' || value === null || isNaN(value)) return 0;
   const v = parseFloat(value); const isM = gender === 'Putra';
   switch(test) {
     case 'sitReach': 
@@ -32,7 +32,7 @@ const getScoreAtletik = (test, gender, value) => {
     case 'beep': 
       return isM ? (v >= 57.78 ? 100 : v >= 52.00 ? 80 : v >= 40.45 ? 70 : v >= 37.56 ? 60 : 40) 
                  : (v >= 49.17 ? 100 : v >= 44.25 ? 80 : v >= 34.42 ? 70 : v >= 31.96 ? 60 : 40);
-    default: return '';
+    default: return 0;
   }
 };
 
@@ -95,9 +95,7 @@ const RadarChart = ({ data, labels, isBlanko }) => {
 
 export default function App() {
   const [identity, setIdentity] = useState({ name: '', origin: '', dob: '', gender: 'Putra' });
-  const [anthro, setAnthro] = useState({ weight: '', height: '' });
-  
-  // FIX: Menambahkan beepLevel dan beepShuttle ke dalam state
+  const [anthro, setAnthro] = useState({ weight: '', height: '', armSpan: '', sitHeight: '' });
   const [tests, setTests] = useState({ sitReach: '', broadJump: '', pushUp: '', sitUp: '', sprint30: '', beepLevel: '', beepShuttle: '' });
   const [isExporting, setIsExporting] = useState(false);
 
@@ -123,11 +121,37 @@ export default function App() {
     return { bmi, status, color };
   }, [anthro.weight, anthro.height]);
 
+  const proportionData = useMemo(() => {
+    const h = parseFloat(anthro.height);
+    const arm = parseFloat(anthro.armSpan);
+    const sit = parseFloat(anthro.sitHeight);
+
+    let apeIndex = { value: 0, text: '-', color: 'text-slate-400', desc: 'Isi Tinggi & Lengan' };
+    let legRatio = { value: 0, text: '-', color: 'text-slate-400', desc: 'Isi Tinggi Duduk' };
+
+    if (h > 0 && arm > 0) {
+      const ratio = arm / h;
+      if (ratio > 1.02) apeIndex = { value: ratio.toFixed(2), text: 'Superior', color: 'text-emerald-500', desc: 'Keuntungan Ayunan Lengan' };
+      else if (ratio >= 1.0) apeIndex = { value: ratio.toFixed(2), text: 'Ideal', color: 'text-blue-500', desc: 'Proporsi Normal' };
+      else apeIndex = { value: ratio.toFixed(2), text: 'Standar', color: 'text-rose-500', desc: 'Jangkauan Pendek' };
+    }
+
+    if (h > 0 && sit > 0 && sit < h) {
+      const legLength = h - sit;
+      const legPercentage = (legLength / h) * 100;
+      if (legPercentage >= 50) legRatio = { value: legPercentage.toFixed(1) + '%', text: 'Tungkai Panjang', color: 'text-emerald-500', desc: 'Potensi Stride Maksimal' };
+      else if (legPercentage >= 47) legRatio = { value: legPercentage.toFixed(1) + '%', text: 'Tungkai Ideal', color: 'text-blue-500', desc: 'Proporsi Seimbang' };
+      else legRatio = { value: legPercentage.toFixed(1) + '%', text: 'Tungkai Pendek', color: 'text-rose-500', desc: 'Fokus Frekuensi Langkah' };
+    }
+
+    return { apeIndex, legRatio };
+  }, [anthro.height, anthro.armSpan, anthro.sitHeight]);
+
   // --- MESIN PENGHITUNG VO2MAX OTOMATIS ---
   const calculatedVO2Max = useMemo(() => {
     const l = parseInt(tests.beepLevel);
     const s = parseInt(tests.beepShuttle);
-    if (!l || !s || l < 1 || s < 1) return '';
+    if (!l || !s || l < 1 || s < 1) return ''; 
     const vo2max = 3.46 * (l + s / (l * 0.4325 + 7.0048)) + 12.2;
     return parseFloat(vo2max.toFixed(2));
   }, [tests.beepLevel, tests.beepShuttle]);
@@ -138,7 +162,6 @@ export default function App() {
     pushUp: getScoreAtletik('pushUp', identity.gender, tests.pushUp),
     sitUp: getScoreAtletik('sitUp', identity.gender, tests.sitUp),
     sprint30: getScoreAtletik('sprint30', identity.gender, tests.sprint30),
-    // FIX: Menggunakan hasil kalkulasi otomatis
     beep: getScoreAtletik('beep', identity.gender, calculatedVO2Max),
   }), [tests, identity.gender, calculatedVO2Max]);
 
@@ -239,15 +262,13 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-200 grid grid-cols-2 gap-6 relative z-10">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tinggi (cm)</label>
-                <input type="number" value={anthro.height} onChange={e => setAnthro({...anthro, height: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl py-3 px-4 font-black text-center focus:border-rose-500 outline-none" placeholder="0" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Berat (kg)</label>
-                <input type="number" value={anthro.weight} onChange={e => setAnthro({...anthro, weight: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl py-3 px-4 font-black text-center focus:border-rose-500 outline-none" placeholder="0" />
-              </div>
+            <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+              {[{label: 'Tinggi (cm)', id: 'height'}, {label: 'Berat (kg)', id: 'weight'}, {label: 'Rentang Lengan', id: 'armSpan'}, {label: 'Tinggi Duduk', id: 'sitHeight'}].map(item => (
+                 <div key={item.id} className="space-y-1">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</label>
+                   <input type="number" value={anthro[item.id]} onChange={e => setAnthro({...anthro, [item.id]: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl py-3 px-3 font-black text-center focus:border-rose-500 outline-none" placeholder={isExporting ? "" : "0"} />
+                 </div>
+              ))}
             </div>
             
             <div className="mt-4 flex items-center justify-between bg-slate-900 text-white rounded-[2rem] p-6 shadow-xl border-l-8 border-rose-600 relative z-10">
@@ -257,6 +278,35 @@ export default function App() {
                  {bmiData.status !== '-' && <span className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white shadow-inner ${bmiData.color}`}>{bmiData.status}</span>}
                </div>
             </div>
+
+            {/* KOTAK RASIO TUNGKAI & LENGAN */}
+            {(anthro.height > 0 && (anthro.armSpan > 0 || anthro.sitHeight > 0)) && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10 animate-in fade-in">
+                <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm flex flex-col justify-center relative overflow-hidden">
+                   <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-600"></div>
+                   <div className="flex justify-between items-start mb-2 pl-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ape Index</span>
+                      <span className={`text-[9px] bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg font-black uppercase tracking-widest ${proportionData.apeIndex.color}`}>{proportionData.apeIndex.text}</span>
+                   </div>
+                   <div className="flex items-end gap-2 pl-2 mt-1">
+                      <span className="text-3xl font-black text-slate-900 leading-none italic">{proportionData.apeIndex.value}</span>
+                   </div>
+                   <p className="text-[10px] font-bold text-slate-400 mt-2 pl-2 uppercase tracking-widest">{proportionData.apeIndex.desc}</p>
+                </div>
+                
+                <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm flex flex-col justify-center relative overflow-hidden">
+                   <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-900"></div>
+                   <div className="flex justify-between items-start mb-2 pl-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Rasio Tungkai</span>
+                      <span className={`text-[9px] bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg font-black uppercase tracking-widest ${proportionData.legRatio.color}`}>{proportionData.legRatio.text}</span>
+                   </div>
+                   <div className="flex items-end gap-2 pl-2 mt-1">
+                      <span className="text-3xl font-black text-slate-900 leading-none italic">{proportionData.legRatio.value}</span>
+                   </div>
+                   <p className="text-[10px] font-bold text-slate-400 mt-2 pl-2 uppercase tracking-widest">{proportionData.legRatio.desc}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
@@ -282,7 +332,7 @@ export default function App() {
                  </div>
                ))}
 
-               {/* FIX: BLOK KHUSUS BEEP TEST OTOMATIS */}
+               {/* BLOK KHUSUS BEEP TEST OTOMATIS */}
                <div className="sm:col-span-2 bg-rose-50/80 p-6 rounded-[2rem] border border-rose-100 mt-2 shadow-inner">
                  <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-3">
                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
@@ -291,7 +341,7 @@ export default function App() {
                    <div className="flex flex-wrap items-center gap-2">
                      {calculatedVO2Max > 0 && (
                        <span className="bg-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm animate-in fade-in slide-in-from-right-2 flex items-center gap-2">
-                         VO2Max: {calculatedVO2Max} <span className="text-[10px] opacity-70">ml/kg/min</span>
+                         VO2Max: {calculatedVO2Max} <span className="text-[10px] opacity-70">ML/KG/MIN</span>
                        </span>
                      )}
                      <span className="bg-slate-900 text-rose-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
