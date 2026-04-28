@@ -32,7 +32,7 @@ const getScoreAtletik = (test, gender, value) => {
     case 'beep': 
       return isM ? (v >= 57.78 ? 100 : v >= 52.00 ? 80 : v >= 40.45 ? 70 : v >= 37.56 ? 60 : 40) 
                  : (v >= 49.17 ? 100 : v >= 44.25 ? 80 : v >= 34.42 ? 70 : v >= 31.96 ? 60 : 40);
-    default: return 0;
+    default: return '';
   }
 };
 
@@ -127,7 +127,7 @@ export default function App() {
   const calculatedVO2Max = useMemo(() => {
     const l = parseInt(tests.beepLevel);
     const s = parseInt(tests.beepShuttle);
-    if (!l || !s || l < 1 || s < 1) return 0;
+    if (!l || !s || l < 1 || s < 1) return '';
     const vo2max = 3.46 * (l + s / (l * 0.4325 + 7.0048)) + 12.2;
     return parseFloat(vo2max.toFixed(2));
   }, [tests.beepLevel, tests.beepShuttle]);
