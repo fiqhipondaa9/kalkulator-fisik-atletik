@@ -11,7 +11,7 @@ const IconReset = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
 
 // --- FUNGSI SCORING LOGIC ATLETIK ---
 const getScoreAtletik = (test, gender, value) => {
-  if (value === '' || value === null || isNaN(value)) return 0;
+  if (value === '' || value === null || isNaN(value)) return '';
   const v = parseFloat(value); const isM = gender === 'Putra';
   switch(test) {
     case 'sitReach': 
