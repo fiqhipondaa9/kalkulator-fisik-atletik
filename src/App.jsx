@@ -96,7 +96,9 @@ const RadarChart = ({ data, labels, isBlanko }) => {
 export default function App() {
   const [identity, setIdentity] = useState({ name: '', origin: '', dob: '', gender: 'Putra' });
   const [anthro, setAnthro] = useState({ weight: '', height: '' });
-  const [tests, setTests] = useState({ sitReach: '', broadJump: '', pushUp: '', sitUp: '', sprint30: '', beep: '' });
+  
+  // FIX: Menambahkan beepLevel dan beepShuttle ke dalam state
+  const [tests, setTests] = useState({ sitReach: '', broadJump: '', pushUp: '', sitUp: '', sprint30: '', beepLevel: '', beepShuttle: '' });
   const [isExporting, setIsExporting] = useState(false);
 
   const age = useMemo(() => {
@@ -121,14 +123,24 @@ export default function App() {
     return { bmi, status, color };
   }, [anthro.weight, anthro.height]);
 
+  // --- MESIN PENGHITUNG VO2MAX OTOMATIS ---
+  const calculatedVO2Max = useMemo(() => {
+    const l = parseInt(tests.beepLevel);
+    const s = parseInt(tests.beepShuttle);
+    if (!l || !s || l < 1 || s < 1) return 0;
+    const vo2max = 3.46 * (l + s / (l * 0.4325 + 7.0048)) + 12.2;
+    return parseFloat(vo2max.toFixed(2));
+  }, [tests.beepLevel, tests.beepShuttle]);
+
   const scores = useMemo(() => ({
     sitReach: getScoreAtletik('sitReach', identity.gender, tests.sitReach),
     broadJump: getScoreAtletik('broadJump', identity.gender, tests.broadJump),
     pushUp: getScoreAtletik('pushUp', identity.gender, tests.pushUp),
     sitUp: getScoreAtletik('sitUp', identity.gender, tests.sitUp),
     sprint30: getScoreAtletik('sprint30', identity.gender, tests.sprint30),
-    beep: getScoreAtletik('beep', identity.gender, tests.beep),
-  }), [tests, identity.gender]);
+    // FIX: Menggunakan hasil kalkulasi otomatis
+    beep: getScoreAtletik('beep', identity.gender, calculatedVO2Max),
+  }), [tests, identity.gender, calculatedVO2Max]);
 
   const activeLabels = ['Flexibility', 'Broad Jump', 'Push Up', 'Sit Up', 'Sprint 30m', 'VO2 Max'];
   const averageScore = useMemo(() => {
@@ -260,7 +272,6 @@ export default function App() {
                  { id: 'pushUp', label: 'Push Up (1 Menit)', unit: 'REPS' },
                  { id: 'sitUp', label: 'Sit Up (2 Menit)', unit: 'REPS' },
                  { id: 'sprint30', label: 'Sprint 30 Meter', unit: 'DETIK' },
-                 { id: 'beep', label: 'Beep Test (VO2 Max)', unit: 'ML/KG' },
                ].map(item => (
                  <div key={item.id} className="flex flex-col">
                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">{item.label}</label>
@@ -270,6 +281,37 @@ export default function App() {
                    </div>
                  </div>
                ))}
+
+               {/* FIX: BLOK KHUSUS BEEP TEST OTOMATIS */}
+               <div className="sm:col-span-2 bg-rose-50/80 p-6 rounded-[2rem] border border-rose-100 mt-2 shadow-inner">
+                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-3">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                     Beep Test (Bleep / Yoyo)
+                   </label>
+                   <div className="flex flex-wrap items-center gap-2">
+                     {calculatedVO2Max > 0 && (
+                       <span className="bg-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm animate-in fade-in slide-in-from-right-2 flex items-center gap-2">
+                         VO2Max: {calculatedVO2Max} <span className="text-[10px] opacity-70">ml/kg/min</span>
+                       </span>
+                     )}
+                     <span className="bg-slate-900 text-rose-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
+                       Target Emas: {getTargetPlaceholder('beep', identity.gender)}
+                     </span>
+                   </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-6">
+                   <div className="relative">
+                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Level</span>
+                     <input type="number" min="1" value={tests.beepLevel} onChange={e => setTests({...tests, beepLevel: e.target.value})} className={`${testInputClass} pl-16 pr-6`} placeholder="0" />
+                   </div>
+                   <div className="relative">
+                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Balikan</span>
+                     <input type="number" min="1" value={tests.beepShuttle} onChange={e => setTests({...tests, beepShuttle: e.target.value})} className={`${testInputClass} pl-20 pr-6`} placeholder="0" />
+                   </div>
+                 </div>
+               </div>
+               {/* AKHIR BLOK BEEP TEST */}
+
             </div>
             <p className="mt-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[10px] font-bold text-rose-800 text-center uppercase tracking-widest leading-relaxed">
               *Penghitungan skor mengacu pada tabel norma elit dunia<br/>Hasil Sprint 30m otomatis dikalkulasi berdasarkan reduksi waktu (Lower is Faster).
