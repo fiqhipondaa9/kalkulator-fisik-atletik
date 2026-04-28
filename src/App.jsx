@@ -210,7 +210,7 @@ export default function App() {
         <div className="mx-auto relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div>
             <div className="inline-block bg-rose-600 text-white font-black text-[10px] px-4 py-1.5 rounded-full uppercase tracking-[0.2em] mb-4 shadow-lg border border-rose-500">
-              PERMENPORA 15 / 2024 • ELITE STANDARD
+              PERMENPORA 15 / 2024
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight italic">
               VELOCITY <span className="text-rose-500">ATHLETICS</span>
@@ -229,7 +229,7 @@ export default function App() {
             )}
             <div className="mt-2">
                 <p className="font-black text-rose-500/80 text-[11px] tracking-[0.3em] uppercase">
-                  System Developed <span className="text-white">by fiqhipondaa9</span>
+                  Platform Olahraga <span className="text-white">by fiqhipondaa9</span>
                 </p>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function App() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 z-0"></div>
             <div className="flex items-center gap-4 mb-8 border-b border-slate-100 pb-5 relative z-10">
               <div className="bg-rose-600 text-white p-3 rounded-2xl shadow-lg shadow-rose-200"><IconUser /></div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Biographical Profile</h2>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Identitas dan Antropometri</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 relative z-10">
@@ -312,7 +312,7 @@ export default function App() {
           <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
             <div className="flex items-center gap-4 mb-8 border-b border-slate-100 pb-5">
               <div className="bg-rose-100 text-rose-600 p-3 rounded-2xl"><IconRunning /></div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Performance Metrics</h2>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Rekam Hasil Tes Fisik</h2>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
