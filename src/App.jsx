@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as htmlToImage from 'html-to-image';
+import qrisImage from './assets/shareqr.png';
 
 // --- KOMPONEN IKON SVG (Custom Atletik) ---
 const IconUser = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
@@ -8,6 +9,8 @@ const IconScale = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
 const IconDownload = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>;
 const IconRunning = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13 13h5l2 3"/><path d="M8 7l4 2 2 4-2 4"/><path d="M11 22v-3l-2-2"/></svg>;
 const IconReset = () => <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+const IconCoffee = () => <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>;
+const IconX = () => <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 
 // --- FUNGSI SCORING LOGIC ATLETIK ---
 const getScoreAtletik = (test, gender, value) => {
@@ -98,6 +101,7 @@ export default function App() {
   const [anthro, setAnthro] = useState({ weight: '', height: '', armSpan: '', sitHeight: '' });
   const [tests, setTests] = useState({ sitReach: '', broadJump: '', pushUp: '', sitUp: '', sprint30: '', beepLevel: '', beepShuttle: '' });
   const [isExporting, setIsExporting] = useState(false);
+  const [showCoffeeModal, setShowCoffeeModal] = useState(false);
 
   const age = useMemo(() => {
     if (!identity.dob) return '-';
@@ -108,6 +112,17 @@ export default function App() {
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) calculatedAge--;
     return calculatedAge;
   }, [identity.dob]);
+
+  // --- TIMER AUTOMATION 33 MENIT ---
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!isExporting) {
+        setShowCoffeeModal(true);
+      }
+    }, 33 * 60 * 1000); // 33 Menit
+
+    return () => clearInterval(timer);
+  }, [isExporting]);
 
   const bmiData = useMemo(() => {
     if (!anthro.weight || !anthro.height || anthro.height <= 0) return { bmi: '-', status: '-', color: 'text-slate-400' };
@@ -147,17 +162,17 @@ export default function App() {
     return { apeIndex, legRatio };
   }, [anthro.height, anthro.armSpan, anthro.sitHeight]);
 
-  // --- MESIN PENGHITUNG VO2MAX OTOMATIS ---
+  // --- MESIN PENGHITUNG VO2MAX OTOMATIS (FIXED) ---
   const calculatedVO2Max = useMemo(() => {
     const l = parseInt(tests.beepLevel);
-    const s = parseInt(tests.beepShuttle);
-    if (!l || !s || l < 1 || s < 1) return ''; 
+    const s = tests.beepShuttle !== '' ? parseInt(tests.beepShuttle) : NaN;
+    if (!l || isNaN(s) || l < 1 || s < 0) return ''; 
     const vo2max = 3.46 * (l + s / (l * 0.4325 + 7.0048)) + 12.2;
     return parseFloat(vo2max.toFixed(2));
   }, [tests.beepLevel, tests.beepShuttle]);
 
   const scores = useMemo(() => ({
-    sitReach: getScoreAtletik('sitReach', identity.gender, tests.sitReach),
+    disabledFlexibility: getScoreAtletik('sitReach', identity.gender, tests.sitReach),
     broadJump: getScoreAtletik('broadJump', identity.gender, tests.broadJump),
     pushUp: getScoreAtletik('pushUp', identity.gender, tests.pushUp),
     sitUp: getScoreAtletik('sitUp', identity.gender, tests.sitUp),
@@ -177,7 +192,7 @@ export default function App() {
 
   const handleDownloadImage = async () => {
     setIsExporting(true);
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 400)));
     try {
       const element = document.getElementById('report-container');
       const dataUrl = await htmlToImage.toPng(element, { quality: 1.0, backgroundColor: "#f8fafc", pixelRatio: 2 });
@@ -192,7 +207,7 @@ export default function App() {
   const testInputClass = "w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-900 focus:outline-none focus:border-rose-500 transition-all pr-24 placeholder:text-[11px] placeholder:font-bold placeholder:text-slate-400/70 text-right";
 
   return (
-    <div id="report-container" className="min-h-screen bg-slate-100 flex flex-col items-center py-10 px-4 font-sans print:bg-white">
+    <div id="report-container" className="min-h-screen bg-slate-100 flex flex-col items-center py-10 px-4 font-sans print:bg-white relative">
       
       {isExporting && (
         <style dangerouslySetInnerHTML={{__html: `
@@ -201,8 +216,44 @@ export default function App() {
         `}} />
       )}
 
+      {/* --- FAB KONSULTASI & APRESIASI --- */}
+      {!isExporting && (
+        <button 
+          onClick={() => setShowCoffeeModal(true)} 
+          className="no-print fixed bottom-8 right-8 bg-rose-600 hover:bg-rose-500 text-white h-14 rounded-full shadow-2xl z-50 flex items-center justify-center px-4 gap-0 hover:gap-3 transition-all duration-300 border-4 border-rose-100 group overflow-hidden"
+          title="Konsultasi & Apresiasi"
+        >
+          <div className="relative flex items-center justify-center">
+            <IconCoffee />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
+          </div>
+          <span className="max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 transition-all duration-500 ease-in-out whitespace-nowrap font-black text-xs uppercase tracking-widest text-white ml-0 group-hover:ml-2">
+            Konsultasi WA
+          </span>
+        </button>
+      )}
+
+      {/* UNIFIED COFFEE MODAL */}
+      {showCoffeeModal && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 no-print">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col overflow-hidden text-center relative p-8">
+            <button onClick={() => setShowCoffeeModal(false)} className="absolute top-4 right-4 bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 p-2 rounded-xl transition-colors"><IconX className="w-4 h-4" /></button>
+            <div className="bg-amber-100 text-amber-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><IconCoffee /></div>
+            <h3 className="text-xl font-black text-slate-800 mb-2">Traktir Kopi Developer</h3>
+            <p className="text-xs font-bold text-slate-500 mb-6 leading-relaxed normal-case">Terima kasih telah menggunakan aplikasi ini! Dukungan Anda sangat berarti bagi pengembangan fitur selanjutnya.</p>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-6 flex justify-center">
+                <img src={qrisImage} alt="QRIS DANA" className="max-w-[200px] h-auto rounded-xl shadow-sm border border-slate-200" />
+            </div>
+            <a href="https://wa.me/6285340804702?text=Halo%20Developer,%20saya%20ingin%20konsultasi%20mengenai%20Aplikasi%20Kalkulator%20Fisik%20Atletik..." target="_blank" rel="noopener noreferrer" className="bg-rose-600 hover:bg-rose-500 text-white font-black py-4 rounded-xl shadow-md transition-colors w-full flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                Konsultasi WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* HEADER: TRACK & FIELD VELOCITY THEME */}
-      <header className="bg-slate-900 text-white p-8 shadow-2xl relative overflow-hidden w-full max-w-7xl rounded-[2.5rem] border-b-8 border-rose-600">
+      <header className="bg-slate-900 text-white p-8 shadow-2xl relative overflow-hidden w-full max-w-7xl rounded-t-[2.5rem] border-b-8 border-rose-600">
         <div className="absolute top-0 left-0 w-full h-full opacity-10">
           <div className="absolute top-0 left-0 w-full h-full bg-[repeating-linear-gradient(90deg,transparent,transparent_40px,#fff_40px,#fff_41px)]"></div>
         </div>
@@ -236,6 +287,7 @@ export default function App() {
         </div>
       </header>
 
+      {/* MAIN CONTAINER */}
       <main className={`${isExporting ? 'w-[1200px]' : 'max-w-7xl w-full'} mx-auto mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8`}>
         
         {/* LEFT COLUMN: DATA INPUT */}
@@ -279,7 +331,6 @@ export default function App() {
                </div>
             </div>
 
-            {/* KOTAK RASIO TUNGKAI & LENGAN */}
             {(anthro.height > 0 && (anthro.armSpan > 0 || anthro.sitHeight > 0)) && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10 animate-in fade-in">
                 <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm flex flex-col justify-center relative overflow-hidden">
@@ -356,7 +407,7 @@ export default function App() {
                    </div>
                    <div className="relative">
                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Balikan</span>
-                     <input type="number" min="1" value={tests.beepShuttle} onChange={e => setTests({...tests, beepShuttle: e.target.value})} className={`${testInputClass} pl-20 pr-6`} placeholder="0" />
+                     <input type="number" min="0" value={tests.beepShuttle} onChange={e => setTests({...tests, beepShuttle: e.target.value})} className={`${testInputClass} pl-20 pr-6`} placeholder="0" />
                    </div>
                  </div>
                </div>
